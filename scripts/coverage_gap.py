@@ -12,6 +12,7 @@ from gnss_network_planner.utils.coordinates import ecef_to_enu
 from gnss_network_planner.utils.logging_utils import setup_logging
 from gnss_network_planner.network.hungary_grid import generate_hungary_grid
 from gnss_network_planner.models.station import Station
+from gnss_network_planner.io.stations import load_stations
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,13 @@ DETAIL_FILE = (
     / "data"
     / "results"
     / "coverage_gap_points.csv"
+)
+
+STATION_FILE = (
+    PROJECT_ROOT
+    / "data"
+    / "stations"
+    / "monitor_network.csv"
 )
 
 EPOCH_FILE = (
@@ -55,24 +63,6 @@ STEP_SECONDS = 3600
 MASK_ANGLE_DEG = 10.0
 
 VALID_SYSTEMS = {"G", "E", "R", "C"}
-
-# ----------------------------------------------------------------------
-# Monitor stations
-# ----------------------------------------------------------------------
-
-MONITOR_STATIONS = [
-    Station(
-        "Budapest",
-        47.481,
-        19.055,
-        120.0,
-    ),
-]
-
-MONITOR_STATIONS = [
-    Station("Budapest", 47.481, 19.055, 120.0),
-    Station("Debrecen", 47.53, 21.63, 120.0),
-]
 
 def station_llh(
         station: Station,
@@ -138,6 +128,19 @@ def main():
         len(grid),
     )
 
+    # ----------------------------------------------------------------------
+    # Monitor stations
+    # ----------------------------------------------------------------------
+
+    monitor_stations = load_stations(
+        STATION_FILE,
+    )
+
+    logger.info(
+        "Loaded %d monitor stations",
+        len(monitor_stations),
+    )
+
     calculator = OrbitCalculator()
 
     all_gap_points = []
@@ -168,16 +171,21 @@ def main():
 
             visible_from_monitor = False
 
-            for station in MONITOR_STATIONS:
+            station_elevations = {}
+
+            for station in monitor_stations:
 
                 el = elevation_deg(
                     sat_position,
-                    station_llh(station),
+                    station.llh,
                 )
+
+                station_elevations[
+                    station.name
+                ] = round(el, 1)
 
                 if el >= MASK_ANGLE_DEG:
                     visible_from_monitor = True
-                    break
 
             sat_gap_points = []
 
@@ -225,8 +233,28 @@ def main():
                     uncovered_grid_points,
                 )
 
-
             if uncovered_grid_points > 0:
+                logger.info(
+                    "%s%02d GAP "
+                    "(visible=%d uncovered=%d)",
+                    system,
+                    sv,
+                    visible_grid_points,
+                    uncovered_grid_points,
+                )
+
+                elevation_text = ", ".join(
+                    f"{name}={elevation:.1f}°"
+                    for name, elevation
+                    in station_elevations.items()
+                )
+
+                logger.info(
+                    "%s%02d station elevations: %s",
+                    system,
+                    sv,
+                    elevation_text,
+                )
 
                 epoch_gap_satellites += 1
                 epoch_gap_points += uncovered_grid_points
