@@ -12,7 +12,10 @@ dependencies = [
     "numpy",
     "pandas",
     "matplotlib",
+    "scipy",
     "pyyaml",
+    "geopandas",
+    "shapely",
 ]
 
 [build-system]
