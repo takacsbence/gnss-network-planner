@@ -1,19 +1,15 @@
 import logging
 
+import numpy as np
+
 from pathlib import Path
 from datetime import datetime, timezone
 
-from gnss_network_planner.navigation.loader import (
-    load_ephemerides,
-)
-
-from gnss_network_planner.gnss.orbit_calculator import (
-    OrbitCalculator,
-)
-
-from gnss_network_planner.utils.logging_utils import (
-    setup_logging
-)
+from gnss_network_planner.navigation.loader import load_ephemerides
+from gnss_network_planner.gnss.orbit_calculator import OrbitCalculator
+from gnss_network_planner.utils.logging_utils import setup_logging
+from gnss_network_planner.utils.coordinates import ecef_to_enu
+from gnss_network_planner.gnss.visibility import azimuth_elevation
 
 logger = logging.getLogger(__name__)
 
@@ -36,22 +32,30 @@ EPOCH = datetime(
     tzinfo=timezone.utc,
 )
 
+RECEIVER_LAT_DEG = 47.4979
+RECEIVER_LON_DEG = 19.0402
+RECEIVER_H = 120.0
+
+receiver_llh = np.array([
+    np.radians(RECEIVER_LAT_DEG),
+    np.radians(RECEIVER_LON_DEG),
+    RECEIVER_H,
+])
+
 SAT_SYSTEM = "C"
 SAT_PRN = 25
 
-setup_logging()
-logger.info("GNSS Network Planner started")
-
 def main():
-
-    print("Loading navigation file...")
+    setup_logging()
+    logger.info("GNSS Network Planner started")
 
     db = load_ephemerides(
         NAV_FILE
     )
 
-    print(
-        f"Loaded {len(db)} ephemerides"
+    logger.info(
+        "Loaded %d ephemerides",
+        len(db),
     )
 
     eph = db.get_closest(
@@ -61,37 +65,50 @@ def main():
     )
 
     if eph is None:
-        print(
-            f"No ephemeris found for "
-            f"{SAT_SYSTEM}{SAT_PRN:02d}"
+        logger.error(
+            "No ephemeris found for %s%02d",
+            SAT_SYSTEM,
+            SAT_PRN,
         )
         return
 
-    print(
-        f"Selected ephemeris: "
-        f"{SAT_SYSTEM}{SAT_PRN:02d}"
+    logger.info(
+        "Selected ephemeris: %s%02d (TOE=%s)",
+        SAT_SYSTEM,
+        SAT_PRN,
+        eph.epoch
+
     )
 
     calculator = OrbitCalculator()
 
-    position = calculator.compute_position(
+    sat_position = calculator.compute_position(
         eph,
         EPOCH,
     )
 
-    print()
-    print(
-        f"{SAT_SYSTEM}{SAT_PRN:02d}"
+    logger.info(
+        "Satellite position (%s%02d) X = %15.3f m Y = %15.3f m Z = %15.3f m",
+        SAT_SYSTEM,
+        SAT_PRN,
+        sat_position.x,
+        sat_position.y,
+        sat_position.z,
     )
 
-    print(
-        f"X = {position.x:15.3f} m"
+    sat_enu = ecef_to_enu(
+        sat_position.ecef,
+        receiver_llh,
     )
-    print(
-        f"Y = {position.y:15.3f} m"
+
+    azimuth, elevation = azimuth_elevation(
+        sat_enu
     )
-    print(
-        f"Z = {position.z:15.3f} m"
+
+    logger.info(
+        "Azimuth   : %.1f deg Elevation : %.1f deg",
+        np.degrees(azimuth),
+        np.degrees(elevation),
     )
 
 
