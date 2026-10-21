@@ -1,0 +1,20 @@
+[project]
+name = "gnss-network-planner"
+version = "0.1.0"
+description = "GNSS monitoring network planning and satellite visibility analysis"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    {name = "Bence Takács"}
+]
+
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "pyyaml",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
