@@ -32,8 +32,8 @@ EPOCH = datetime(
     tzinfo=timezone.utc,
 )
 
-RECEIVER_LAT_DEG = 47.4979
-RECEIVER_LON_DEG = 19.0402
+RECEIVER_LAT_DEG = 47.0
+RECEIVER_LON_DEG = 19.0
 RECEIVER_H = 120.0
 
 receiver_llh = np.array([
@@ -42,8 +42,8 @@ receiver_llh = np.array([
     RECEIVER_H,
 ])
 
-SAT_SYSTEM = "C"
-SAT_PRN = 25
+SAT_SYSTEM = "R"
+SAT_PRN = 6
 
 def main():
     setup_logging()
