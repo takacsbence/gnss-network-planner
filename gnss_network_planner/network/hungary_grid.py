@@ -1,9 +1,13 @@
-from pathlib import Path
-
 import numpy as np
 import geopandas as gpd
+
+from pathlib import Path
 from shapely.geometry import Point
 
+from gnss_network_planner.utils.coordinates import (
+    geodetic_to_ecef,
+    rot_enu,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -13,6 +17,7 @@ COUNTRIES_FILE = (
     / "boundaries"
     / "ne_10m_admin_0_countries.shp"
 )
+
 
 def load_hungary_polygon():
     """
@@ -34,26 +39,23 @@ def load_hungary_polygon():
 
     return hungary.iloc[0].geometry
 
+
 def generate_hungary_grid(
         spacing_deg=0.1,
 ):
     """
     Generate grid points inside Hungary.
 
-    Parameters
-    ----------
-    spacing_deg : float
-
-        Grid spacing in degrees.
-
-        0.1 deg  -> about 10 km
-        0.2 deg  -> about 20 km
-
     Returns
     -------
-    list of tuple
+    grid_llh : ndarray (N,3)
+        Latitude [rad], longitude [rad], height [m]
 
-        (latitude_deg, longitude_deg)
+    grid_ecef : ndarray (N,3)
+        ECEF coordinates [m]
+
+    grid_rot : ndarray (N,3,3)
+        ENU rotation matrices
     """
 
     polygon = load_hungary_polygon()
@@ -62,7 +64,9 @@ def generate_hungary_grid(
         polygon.bounds
     )
 
-    points = []
+    grid_llh = []
+    grid_ecef = []
+    grid_rot = []
 
     latitudes = np.arange(
         min_lat,
@@ -85,27 +89,63 @@ def generate_hungary_grid(
                 lat,
             )
 
-            if polygon.contains(point):
-                points.append(
-                    np.array([
-                        np.radians(lat),
-                        np.radians(lon),
-                        120.0,
-                    ])
-                )
+            if not polygon.contains(point):
+                continue
 
-    return points
+            llh = np.array([
+                np.radians(lat),
+                np.radians(lon),
+                120.0,
+            ])
+
+            ecef = geodetic_to_ecef(
+                llh
+            )
+
+            R = rot_enu(
+                llh
+            )
+
+            grid_llh.append(
+                llh
+            )
+
+            grid_ecef.append(
+                ecef
+            )
+
+            grid_rot.append(
+                R
+            )
+
+    return (
+        np.asarray(grid_llh),
+        np.asarray(grid_ecef),
+        np.asarray(grid_rot),
+    )
+
 
 if __name__ == "__main__":
 
-    grid = generate_hungary_grid(
+    llh, ecef, rot = generate_hungary_grid(
         spacing_deg=0.1
     )
 
     print(
-        f"Grid points: {len(grid)}"
+        f"Grid points: {len(llh)}"
     )
 
     print(
-        grid[:10]
+        "LLH shape:",
+        llh.shape
+    )
+
+    print(
+        "ECEF shape:",
+        ecef.shape
+    )
+
+    print(
+        "ROT shape:",
+        rot.shape
     )

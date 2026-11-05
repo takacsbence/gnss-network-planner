@@ -58,7 +58,7 @@ END_TIME = datetime(
     tzinfo=timezone.utc,
 )
 
-STEP_SECONDS = 3600
+STEP_SECONDS = 600
 
 MASK_ANGLE_DEG = 10.0
 
@@ -121,11 +121,13 @@ def main():
         len(satellites),
     )
 
-    grid = generate_hungary_grid()
+    grid_llh, grid_ecef, grid_rot = (
+        generate_hungary_grid()
+    )
 
     logger.info(
         "Grid points: %d",
-        len(grid),
+        len(grid_llh),
     )
 
     # ----------------------------------------------------------------------
@@ -187,40 +189,80 @@ def main():
                 if el >= MASK_ANGLE_DEG:
                     visible_from_monitor = True
 
+            if visible_from_monitor:
+                continue
+
+
+            sat_xyz = sat_position.ecef
+
+            diff = sat_xyz - grid_ecef
+
+            enu = np.einsum(
+                "nij,nj->ni",
+                grid_rot,
+                diff,
+            )
+
+            horizontal = np.hypot(
+                enu[:, 0],
+                enu[:, 1],
+            )
+
+            elevation_deg_array = np.degrees(
+                np.arctan2(
+                    enu[:, 2],
+                    horizontal,
+                )
+            )
+
+            visible_mask = (
+                    elevation_deg_array
+                    >= MASK_ANGLE_DEG
+            )
+
+            visible_indices = np.where(
+                visible_mask
+            )[0]
+
+            visible_grid_points = len(
+                visible_indices
+            )
+
+            uncovered_grid_points = len(
+                visible_indices
+            )
+
             sat_gap_points = []
 
-            visible_grid_points = 0
-            uncovered_grid_points = 0
+            for idx in visible_indices:
+                gap_record = {
+                    "epoch": epoch.isoformat(),
+                    "satellite": f"{system}{sv:02d}",
+                    "lat_deg": round(
+                        np.degrees(
+                            grid_llh[idx, 0]
+                        ),
+                        4,
+                    ),
+                    "lon_deg": round(
+                        np.degrees(
+                            grid_llh[idx, 1]
+                        ),
+                        4,
+                    ),
+                    "elevation_deg": round(
+                        elevation_deg_array[idx],
+                        1,
+                    ),
+                }
 
-            for point in grid:
-
-                el = elevation_deg(
-                    sat_position,
-                    point,
+                sat_gap_points.append(
+                    gap_record
                 )
 
-                if el >= MASK_ANGLE_DEG:
-
-                    visible_grid_points += 1
-
-                    if not visible_from_monitor:
-                        uncovered_grid_points += 1
-
-                        gap_record = {
-                            "epoch": epoch.isoformat(),
-                            "satellite": f"{system}{sv:02d}",
-                            "lat_deg": round(np.degrees(point[0]), 4),
-                            "lon_deg": round(np.degrees(point[1]), 4),
-                            "elevation_deg": round(el, 1),
-                        }
-
-                        sat_gap_points.append(
-                            gap_record
-                        )
-
-                        all_gap_points.append(
-                            gap_record
-                        )
+                all_gap_points.append(
+                    gap_record
+                )
 
             if sat_gap_points:
 
@@ -300,4 +342,16 @@ def main():
 
 
 if __name__ == "__main__":
+    import cProfile
+    import pstats
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     main()
+
+    profiler.disable()
+
+    stats = pstats.Stats(profiler)
+    stats.sort_stats("cumtime")
+    stats.print_stats(30)

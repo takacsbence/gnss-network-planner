@@ -130,6 +130,11 @@ def main():
             "galileo": counts["E"],
             "glonass": counts["R"],
             "beidou": counts["C"],
+            "total":
+                counts["G"]
+                + counts["E"]
+                + counts["R"]
+                + counts["C"],
         })
 
         epoch += timedelta(
@@ -167,6 +172,13 @@ def main():
             df[constellation].mean(),
             df[constellation].max(),
         )
+    logger.info(
+        "%-8s avg=%5.2f max=%3d min=%3d",
+        "total",
+        df["total"].mean(),
+        df["total"].max(),
+        df["total"].min(),
+    )
 
 if __name__ == "__main__":
     main()
