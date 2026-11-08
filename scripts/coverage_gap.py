@@ -21,7 +21,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 NAV_FILE = (
     PROJECT_ROOT
     / "data"
-    / "nav"
+    / "navigation"
     / "BRDC00IGS_R_20252630000_01D_MN.rnx"
 )
 
