@@ -1,5 +1,29 @@
 import numpy as np
 
+from src.utils.coordinates import ecef_to_enu
+
+def elevation_deg(
+        sat_position,
+        receiver_llh,
+):
+    """
+    Compute satellite elevation angle.
+    """
+
+    enu = ecef_to_enu(
+        sat_position.ecef,
+        receiver_llh,
+    )
+
+    _, elevation = azimuth_elevation(
+        enu,
+    )
+
+    return np.degrees(
+        elevation,
+    )
+
+
 def azimuth_elevation(enu):
     """
     Compute azimuth and elevation from an ENU direction vector.
