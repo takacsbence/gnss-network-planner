@@ -19,7 +19,7 @@ NAV_FILE = (
     PROJECT_ROOT
     / "data"
     / "navigation"
-    / "BRDC00IGS_R_20252630000_01D_MN.rnx"
+    / "BRDC00IGS_R_20262940000_01D_MN.rnx"
 )
 
 EPOCH = datetime(
