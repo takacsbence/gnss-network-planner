@@ -1,6 +1,7 @@
 from datetime import datetime
 from collections import defaultdict
-from gnss_network_planner.navigation.models import (
+
+from src.navigation.models import (
     BroadcastEphemeris,
 )
 

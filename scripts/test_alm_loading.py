@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from gnss_network_planner.almanac.loader import (
+from src.almanac.loader import (
     load_almanac,
 )
 

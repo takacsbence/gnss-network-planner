@@ -4,7 +4,7 @@ import geopandas as gpd
 from pathlib import Path
 from shapely.geometry import Point
 
-from gnss_network_planner.utils.coordinates import (
+from src.utils.coordinates import (
     geodetic_to_ecef,
     rot_enu,
 )

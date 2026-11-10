@@ -1,12 +1,12 @@
-from gnss_network_planner.navigation.models import (
+from src.navigation.models import (
     BroadcastEphemeris,
 )
 
-from gnss_network_planner.navigation.database import (
+from src.navigation.database import (
     EphemerisDatabase,
 )
 
-from gnss_network_planner.io.rinex_navigation_reader import (
+from src.io.rinex_navigation_reader import (
     read_rinex_navigation,
 )
 

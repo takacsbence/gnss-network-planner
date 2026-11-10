@@ -2,10 +2,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from gnss_network_planner.models.station import (
+from src.network.station import (
     Station,
 )
-
 
 def load_stations(
         filename: str | Path,

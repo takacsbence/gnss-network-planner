@@ -1,6 +1,6 @@
 import numpy as np
 
-from gnss_network_planner.utils.constants import *
+from src.utils.constants import *
 
 def ecef_to_geodetic(
         ecef,

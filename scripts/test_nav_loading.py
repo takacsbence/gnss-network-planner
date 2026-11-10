@@ -1,7 +1,7 @@
 from pathlib import Path
 from datetime import datetime, timezone
 
-from gnss_network_planner.navigation.loader import (
+from src.navigation.loader import (
     load_ephemerides,
 )
 

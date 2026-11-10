@@ -1,4 +1,4 @@
-# gnss_network_planner/almanac/orbit_calculator.py
+# src/almanac/orbit_calculator.py
 
 import math
 from datetime import datetime, timezone

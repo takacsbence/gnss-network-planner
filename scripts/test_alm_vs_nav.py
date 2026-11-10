@@ -4,16 +4,16 @@ from datetime import datetime, timezone
 
 from pathlib import Path
 
-from gnss_network_planner.almanac.loader import (
+from src.almanac.loader import (
     load_almanac,
 )
 
-from gnss_network_planner.almanac.orbit_calculator import (
+from src.almanac.orbit_calculator import (
     AlmanacOrbitCalculator,
 )
-from gnss_network_planner.utils.logging_utils import setup_logging
-from gnss_network_planner.navigation.loader import load_ephemerides
-from gnss_network_planner.gnss.orbit_calculator import OrbitCalculator
+from src.utils.logging_utils import setup_logging
+from src.navigation.loader import load_ephemerides
+from src.navigation.orbit_calculator import OrbitCalculator
 
 
 logger = logging.getLogger(__name__)

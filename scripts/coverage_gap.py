@@ -5,14 +5,13 @@ from datetime import datetime, timezone, timedelta
 import numpy as np
 import pandas as pd
 
-from gnss_network_planner.navigation.loader import load_ephemerides
-from gnss_network_planner.gnss.orbit_calculator import OrbitCalculator
-from gnss_network_planner.gnss.visibility import azimuth_elevation
-from gnss_network_planner.utils.coordinates import ecef_to_enu
-from gnss_network_planner.utils.logging_utils import setup_logging
-from gnss_network_planner.network.hungary_grid import generate_hungary_grid
-from gnss_network_planner.models.station import Station
-from gnss_network_planner.io.stations import load_stations
+from src.navigation.loader import load_ephemerides
+from src.navigation.orbit_calculator import OrbitCalculator
+from src.utils.logging_utils import setup_logging
+from src.network.hungary_grid import generate_hungary_grid
+from src.io.stations import load_stations
+from src.utils.visibility import elevation_deg
+
 
 logger = logging.getLogger(__name__)
 
@@ -58,41 +57,11 @@ END_TIME = datetime(
     tzinfo=timezone.utc,
 )
 
-STEP_SECONDS = 1
+STEP_SECONDS = 600
 
 MASK_ANGLE_DEG = 10.0
 
 VALID_SYSTEMS = {"G", "E", "R", "C"}
-
-def station_llh(
-        station: Station,
-):
-    return np.array([
-        np.radians(station.lat_deg),
-        np.radians(station.lon_deg),
-        station.h,
-    ])
-
-def elevation_deg(
-        sat_position,
-        receiver_llh,
-):
-    """
-    Compute satellite elevation angle.
-    """
-
-    enu = ecef_to_enu(
-        sat_position.ecef,
-        receiver_llh,
-    )
-
-    _, elevation = azimuth_elevation(
-        enu,
-    )
-
-    return np.degrees(
-        elevation,
-    )
 
 
 def main():
@@ -224,11 +193,7 @@ def main():
                 visible_mask
             )[0]
 
-            visible_grid_points = len(
-                visible_indices
-            )
-
-            uncovered_grid_points = len(
+            gap_points = len(
                 visible_indices
             )
 
@@ -268,21 +233,10 @@ def main():
 
                 logger.info(
                     "%s%02d GAP "
-                    "(visible=%d, uncovered=%d)",
+                    "(uncovered=%d)",
                     system,
                     sv,
-                    visible_grid_points,
-                    uncovered_grid_points,
-                )
-
-            if uncovered_grid_points > 0:
-                logger.info(
-                    "%s%02d GAP "
-                    "(visible=%d uncovered=%d)",
-                    system,
-                    sv,
-                    visible_grid_points,
-                    uncovered_grid_points,
+                    gap_points,
                 )
 
                 elevation_text = ", ".join(
@@ -299,7 +253,7 @@ def main():
                 )
 
                 epoch_gap_satellites += 1
-                epoch_gap_points += uncovered_grid_points
+                epoch_gap_points += gap_points
 
         logger.info(
             "%s gaps: satellites=%d points=%d",

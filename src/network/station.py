@@ -18,3 +18,4 @@ class Station:
             np.radians(self.lon_deg),
             self.h,
         ])
+

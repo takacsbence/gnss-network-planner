@@ -28,7 +28,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from gnss_network_planner.navigation.models import (
+from src.navigation.models import (
     TimeSystemCorrection,
     IonosphericCorrection,
     RinexNavHeader,

@@ -3,11 +3,11 @@ from pathlib import Path
 import logging
 import sys
 
-from gnss_network_planner.navigation.download_nav_file import (
+from src.navigation.download_nav_file import (
     download_brdc,
     decompress_gzip,
 )
-from gnss_network_planner.utils.logging_utils import setup_logging
+from src.utils.logging_utils import setup_logging
 
 logger = logging.getLogger(__name__)
 

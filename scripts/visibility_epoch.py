@@ -5,11 +5,11 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime, timezone
 
-from gnss_network_planner.navigation.loader import load_ephemerides
-from gnss_network_planner.gnss.orbit_calculator import OrbitCalculator
-from gnss_network_planner.utils.logging_utils import setup_logging
-from gnss_network_planner.utils.coordinates import ecef_to_enu
-from gnss_network_planner.gnss.visibility import azimuth_elevation
+from src.navigation.loader import load_ephemerides
+from src.navigation.orbit_calculator import OrbitCalculator
+from src.utils.logging_utils import setup_logging
+from src.utils.coordinates import ecef_to_enu
+from src.utils.visibility import azimuth_elevation
 
 logger = logging.getLogger(__name__)
 
@@ -23,9 +23,9 @@ NAV_FILE = (
 )
 
 EPOCH = datetime(
-    2025,
-    9,
-    20,
+    2026,
+    10,
+    21,
     12,
     0,
     0,
