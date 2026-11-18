@@ -1,7 +1,7 @@
 
-from gnss_network_planner.almanac.database import AlmanacDatabase
+from src.almanac.database import AlmanacDatabase
 
-from gnss_network_planner.io.ubx_alm_decoder import (
+from src.io.ubx_alm_decoder import (
     iter_almanac_records,
 )
 

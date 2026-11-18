@@ -1,47 +1,34 @@
-from collections import defaultdict
-from datetime import datetime
+from src.almanac.models import AlmanacRecord
 
-from gnss_network_planner.almanac.models import AlmanacRecord
-
-"""
 class AlmanacDatabase:
+
     def __init__(self):
-        self._records: dict[str, list[AlmanacRecord]] = defaultdict(list)
+        self._records: dict[str, AlmanacRecord] = {}
 
-    def add(self, record: AlmanacRecord) -> None:
-        self._records[record.sat_id].append(record)
+    def add(
+        self,
+        record: AlmanacRecord,
+    ) -> None:
 
-    def satellite_ids(self) -> list[str]:
-        return sorted(self._records.keys())
+        self._records[record.sat_id] = record
 
-    def has_satellite(self, sat_id: str) -> bool:
-        return sat_id in self._records
-
-    def get_latest(
+    def get(
         self,
         sat_id: str,
-        epoch: datetime,
     ) -> AlmanacRecord | None:
 
-        records = self._records.get(sat_id)
+        return self._records.get(sat_id)
 
-        if not records:
-            return None
+    def satellite_ids(self) -> list[str]:
 
-        valid = [
-            r
-            for r in records
-            if r.source_epoch is not None
-            and r.source_epoch <= epoch
-        ]
+        return sorted(self._records.keys())
 
-        if not valid:
-            return None
+    def has_satellite(
+        self,
+        sat_id: str,
+    ) -> bool:
 
-        return max(
-            valid,
-            key=lambda r: r.source_epoch,
-        )
+        return sat_id in self._records
 
     def satellites(
         self,
@@ -49,27 +36,10 @@ class AlmanacDatabase:
     ) -> list[str]:
 
         if system is None:
-            return sorted(self._records.keys())
+            return self.satellite_ids()
 
         return sorted(
             sat_id
             for sat_id in self._records
             if sat_id.startswith(system)
         )
-"""
-from collections import defaultdict
-
-
-class AlmanacDatabase:
-
-    def __init__(self):
-        self._records = {}
-
-    def add(self, record):
-        self._records[record["prn"]] = record
-
-    def get(self, sat_id):
-        return self._records.get(sat_id)
-
-    def satellite_ids(self):
-        return sorted(self._records.keys())

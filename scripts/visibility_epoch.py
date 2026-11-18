@@ -42,8 +42,8 @@ receiver_llh = np.array([
     RECEIVER_H,
 ])
 
-SAT_SYSTEM = "R"
-SAT_PRN = 6
+SAT_SYSTEM = "C"
+SAT_PRN = 22
 
 def main():
     setup_logging()

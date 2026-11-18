@@ -4,7 +4,6 @@ from src.almanac.loader import (
     load_almanac,
 )
 
-
 def main():
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -15,9 +14,10 @@ def main():
         len(db.satellite_ids())
     )
 
-    alm = db.get("G01")
+    alm = db.get("G02")
 
     print(alm)
+    print(alm.gnss_id)
 
 
 if __name__ == "__main__":

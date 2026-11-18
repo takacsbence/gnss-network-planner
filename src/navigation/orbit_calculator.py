@@ -136,11 +136,19 @@ class OrbitCalculator:
             r = A * (1 - eph.e * math.cos(E)) + dr
             i = eph.i0 + di + eph.idot * tk
 
+            # i correction to Beidou GEO satellites
+            if eph.gnss_id == "C" and (
+                            eph.sv_id <= 5
+                            or eph.sv_id >= 59
+                    ):
+                i -= math.radians(5.0)
+
             # Coordinates in orbital plane.
             x_prime = r * math.cos(u)
             y_prime = r * math.sin(u)
 
             # Corrected longitude of ascending node.
+
             Omega = (
                 eph.omega0
                 + (eph.omega_dot - OMEGA_E) * tk
@@ -161,6 +169,10 @@ class OrbitCalculator:
             z = (
                 y_prime * math.sin(i)
             )
+
+
+            #print(epoch, "nav tk = ", tk, "n = ", n, "M0 [deg] = ", np.degrees(eph.m0), "r = ", r, "x = ", x_prime, "y = ", y_prime, i,
+            #      "X = ", x, "Y = ", y, "Z = ", z)
 
         # ==================================================================
         # GLONASS

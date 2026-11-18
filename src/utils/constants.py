@@ -1,7 +1,7 @@
 """
 Physical and geodetic constants used in GNSS calculations.
 """
-
+import math
 # ============================================================================
 # Fundamental constants
 # ============================================================================
@@ -40,3 +40,10 @@ OMEGA_E_GLO = 7.292115e-5
 WGS84_A = 6378137.0
 WGS84_F = 1.0 / 298.257223563
 WGS84_E2 = WGS84_F * (2.0 - WGS84_F)
+
+# ============================================================================
+# general constants for almanac computations
+# ============================================================================
+
+PI = math.pi
+SC = PI  # semi-circle to radian conversion

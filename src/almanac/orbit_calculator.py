@@ -1,106 +1,145 @@
-# src/almanac/orbit_calculator.py
-
-import math
 from datetime import datetime, timezone
 
-MU_GPS = 3.986005e14
-OMEGA_E = 7.2921151467e-5
-
-# --- Időrendszerek -----------------------------------------------------------
-GPS_EPOCH = datetime(1980, 1, 6, tzinfo=timezone.utc)
-LEAP_GPS_UTC = 18  # GPS-UTC 2017 óta; felülírja az MGA-INI-TIME-UTC, ha van benne
-BDT_GPST = 14      # GPST - BDT, másodperc
-BDS_WEEK_OFFSET = 1356
-GST_WEEK_OFFSET = 1024
-
-
-def gps_week_tow(t_utc, leap):
-    s = (t_utc - GPS_EPOCH).total_seconds() + leap
-    w = int(s // 604800)
-    return w, s - w * 604800
-
-
-def full_week(cur_week, wna, modulus):
-    """A csonkolt almanach-hétszámból a mostanihoz legközelebbi teljes hét."""
-    wa = cur_week - ((cur_week - wna) % modulus)
-    if cur_week - wa > modulus // 2:
-        wa += modulus
-    return wa
+from src.navigation.orbit_calculator import SatellitePosition
+from src.almanac.models import AlmanacRecord
+from src.utils.time_utils import *
+from src.utils.constants import *
 
 
 class AlmanacOrbitCalculator:
+    """
+    Satellite position computation from GNSS almanac data.
 
+    Supports:
+        - GPS almanacs
+        - Galileo almanacs
+        - BeiDou almanacs
+        - GLONASS almanacs
+
+    For GPS, Galileo and BeiDou satellites, positions are computed from
+    Keplerian orbital elements contained in the almanac.
+
+    For GLONASS satellites, positions are computed using the dedicated
+    GLONASS almanac model defined in the GLONASS ICD.
+    """
     def compute_position(
         self,
-        alm: dict,
+        alm: AlmanacRecord,
         epoch: datetime,
-    ) -> tuple[float, float, float]:
+    ) -> SatellitePosition:
+        """
+        Compute ECEF satellite coordinates for the requested epoch.
 
-        if alm["sys"] == "GLO":
-            raise NotImplementedError(
-                "GLONASS almanach not yet supported"
+        Parameters
+        ----------
+        alm : AlmanacRecord
+            Decoded almanac record.
+        epoch : datetime
+            Target epoch in UTC.
+
+        Returns
+        -------
+        SatellitePosition
+            Satellite ECEF position in meters.
+        """
+        if alm.gnss_id == "R":
+            return self._pos_glo(
+                alm,
+                epoch,
+            )
+        else:
+            return self._compute_kepler(
+                alm,
+                epoch,
             )
 
-        return self._compute_kepler(
-            alm,
-            epoch,
-        )
+    def _compute_tk(
+            self,
+            alm: AlmanacRecord,
+            epoch: datetime,
+    ) -> float:
+        """
+        Compute the elapsed time between the almanac reference epoch
+        (TOA) and the requested epoch.
+
+        The method reconstructs the full almanac week number from the
+        truncated week transmitted in the almanac and derives the
+        corresponding time difference in seconds.
+
+        Returns
+        -------
+        float
+            Time difference tk [s].
+        """
+
+        gw, gtow = datetime_to_gps_time(epoch, LEAP_GPS_UTC)
+
+        if alm.gnss_id == "G":
+            cw, tow, mod = gw, gtow, 256
+        elif alm.gnss_id == "E":
+            cw, tow, mod = gw - GST_WEEK_OFFSET, gtow, 4
+        elif alm.gnss_id == "C":
+            bs = gw * 604800 + gtow - BDT_GPST
+            cw, tow, mod = int(bs // 604800) - BDS_WEEK_OFFSET, bs % 604800, 256
+
+        wa = resolve_full_week(cw, alm.week, mod)
+
+        tk = (cw - wa) * 604800 + (tow - alm.toa)
+
+        return tk
 
     def _compute_kepler(
         self,
-        alm: dict,
+        alm: AlmanacRecord,
         epoch: datetime,
-    ) -> tuple[float, float, float]:
+    ) -> SatellitePosition:
+        """
+        Compute satellite position from broadcast almanac Keplerian
+        orbital elements.
 
-        a = alm["sqrta"] ** 2
+        Applicable to GPS, Galileo and BeiDou satellites.
+        """
 
-        e = alm["e"]
+        a = alm.sqrt_a ** 2
+        e = alm.e
+        # Mean motion.
+        n = math.sqrt(MU / a**3)
 
-        n = math.sqrt(
-            MU_GPS / a**3
-        )
+        tk = self._compute_tk(alm, epoch)
+        #print("tk = ", tk, alm["toa"], alm["prn"], alm["wna"])
 
-        toe = alm["toa"]
+        # Mean anomaly.
+        M = alm.m0 + n * tk
 
-        gps_seconds = self._gps_seconds_of_week(
-            epoch
-        )
-
-        tk = gps_seconds - toe
-
-        #
-        # mean anomaly
-        #
-        M = alm["m0"] + n * tk
-
-        #
-        # Kepler
-        #
+        # Solve Kepler's equation.
         E = self._solve_kepler(M, e)
 
-        #
-        # true anomaly
-        #
+        # True anomaly.
         v = math.atan2(
             math.sqrt(1 - e * e) * math.sin(E),
             math.cos(E) - e,
         )
 
-        u = v + alm["w"]
+        # Argument of latitude.
+        u = v + alm.omega
 
+        # Orbital radius.
         r = a * (1 - e * math.cos(E))
 
+        # Position in orbital plane.
         x_orb = r * math.cos(u)
         y_orb = r * math.sin(u)
 
-        i = alm["i"]
+        i = alm.i0
 
+        # Corrected longitude of ascending node.
         omega = (
-                alm["omega0"]
-                + (alm["omegadot"] - OMEGA_E) * tk
-                - OMEGA_E * alm["toa"]
+                alm.omega0
+                + (alm.omega_dot - OMEGA_E) * tk
+                - OMEGA_E * alm.toa
         )
 
+        # Transform from orbital plane to ECEF.
         x = (
             x_orb * math.cos(omega)
             - y_orb * math.cos(i) * math.sin(omega)
@@ -115,13 +154,36 @@ class AlmanacOrbitCalculator:
             y_orb * math.sin(i)
         )
 
-        return x, y, z
+        #print(epoch, "alm tk = ", tk, "toa = ", alm["toa"], "a =", a, e, "n = ", n, "M0 [deg]= ", np.degrees(alm["m0"]), "r = ", r, "x = ", x_orb, "y = ", y_orb, i, omega, "X = ", x, "Y = ", y, "Z = ", z)
+
+        return SatellitePosition(
+            gnss_id=alm.gnss_id,
+            sv_id=alm.sv_id,
+            x=x,
+            y=y,
+            z=z,
+        )
 
     @staticmethod
     def _solve_kepler(
         M: float,
         e: float,
     ) -> float:
+        """
+        Solve Kepler's equation using Newton-Raphson iteration.
+
+        Parameters
+        ----------
+        M : float
+            Mean anomaly [rad].
+        e : float
+            Orbital eccentricity.
+
+        Returns
+        -------
+        float
+            Eccentric anomaly [rad].
+        """
 
         E = M
 
@@ -134,23 +196,126 @@ class AlmanacOrbitCalculator:
 
         return E
 
-    @staticmethod
-    def _gps_seconds_of_week(
+
+    def _glo_epoch(
+        self,
+        N,
+        epoch
+    ):
+        """
+        Determine the UTC epoch corresponding to the GLONASS almanac
+        day number N.
+
+        The GLONASS almanac day belongs to a four-year cycle. The cycle
+        closest to the requested epoch is selected.
+        """
+
+        best = None
+
+        for leap_year in range(epoch.year - 8, epoch.year + 5):
+            if leap_year % 4:
+                continue
+
+            d = datetime(leap_year, 1, 1, tzinfo=timezone.utc) + timedelta(days=N - 1) - timedelta(hours=3)
+
+            if best is None or abs((d - epoch).total_seconds()) < abs((best - epoch).total_seconds()):
+                best = d
+
+        return best
+
+
+    def _pos_glo(
+        self,
+        alm: AlmanacRecord,
         epoch: datetime,
-    ) -> float:
+    ):
+        """
+        Compute GLONASS satellite position from almanac parameters.
 
-        if epoch.tzinfo is None:
-            epoch = epoch.replace(
-                tzinfo=timezone.utc
-            )
+        References
+        ----------
+        GLONASS ICD, Appendix describing the analytical almanac orbit model.
 
-        gps_epoch = datetime(
-            1980,
-            1,
-            6,
-            tzinfo=timezone.utc,
+        The implementation follows the analytical GLONASS almanac orbit
+        model including J2 perturbation terms.
+        """
+
+        t0 = self._glo_epoch(alm.glonass_n, epoch) + timedelta(seconds=alm.tlam)
+
+        dt = (epoch - t0).total_seconds()
+
+        # Reference inclination plus transmitted correction.
+        i = (63 / 180) * PI + alm.di
+
+        Tav = 43200 + alm.dT
+
+        # Number of completed draconitic revolutions.
+        W = math.floor(dt / Tav)
+
+        Tdr = Tav + (2 * W + 1) * alm.dTdot
+
+        n = 2 * PI / Tdr
+
+        e = alm.e
+        w0 = alm.omega0
+
+        # Iteratively determine semi-major axis from draconitic period.
+        aa = (Tdr / (2 * PI)) ** (2 / 3) * MU_GLO ** (1 / 3)
+
+        for _ in range(20):
+            p = aa * (1 - e ** 2)
+
+            k = 1.5 * J2 * (AE / p) ** 2
+
+            Tosk = Tdr / (1 - k * ((2 - 2.5 * math.sin(i) ** 2) * (1 - e ** 2) ** 1.5 /
+                                   (1 + e * math.cos(w0)) ** 2 +
+                                   (1 + e * math.cos(w0)) ** 3 / (1 - e ** 2)))
+
+            new = (Tosk / (2 * PI)) ** (2 / 3) * MU_GLO ** (1 / 3)
+
+            if abs(new - aa) < 1e-3:
+                aa = new
+                break
+
+            aa = new
+
+        p = aa * (1 - e ** 2)
+
+        # J2 secular perturbations.
+        Omdot = -1.5 * J2 * n * (AE / p) ** 2 * math.cos(i)
+
+        wdot = -0.75 * J2 * n * (AE / p) ** 2 * (1 - 5 * math.cos(i) ** 2)
+
+        lam = alm.lam + (Omdot - OMEGA_E_GLO) * dt
+        w = w0 + wdot * dt
+
+        # Mean argument of latitude.
+        E0 = -2 * math.atan(math.sqrt((1 - e) / (1 + e)) * math.tan(w0 / 2))
+
+        L1 = w0 + E0 - e * math.sin(E0)
+
+        L2 = L1 + n * (dt - (W * Tav + alm.dTdot * W ** 2))
+
+        M = L2 - w
+
+        E = self._solve_kepler(M, e)
+
+        nu = math.atan2(math.sqrt(1 - e ** 2) * math.sin(E), math.cos(E) - e)
+
+        u = nu + w
+
+        r = aa * (1 - e * math.cos(E))
+
+        # Convert orbital-plane coordinates to ECEF.
+        x = r * (math.cos(lam) * math.cos(u) - math.sin(lam) * math.sin(u) * math.cos(i))
+        y = r * (math.sin(lam) * math.cos(u) + math.cos(lam) * math.sin(u) * math.cos(i))
+        z = r * math.sin(u) * math.sin(i)
+
+        return SatellitePosition(
+            gnss_id=alm.gnss_id,
+            sv_id=alm.sv_id,
+            x=x,
+            y=y,
+            z=z,
         )
 
-        dt = (epoch - gps_epoch).total_seconds()
-
-        return dt % 604800.0

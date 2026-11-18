@@ -106,3 +106,30 @@ def azimuth_elevation(enu):
         az,
         el,
     )
+
+def compute_az_el(
+        sat_ecef: np.ndarray,
+        receiver_llh: np.ndarray,
+) -> tuple[float, float]:
+    """
+    Compute satellite azimuth and elevation angles.
+
+    Returns
+    -------
+    tuple[float, float]
+        Azimuth and elevation in degrees.
+    """
+
+    sat_enu = ecef_to_enu(
+        sat_ecef,
+        receiver_llh,
+    )
+
+    azimuth, elevation = azimuth_elevation(
+        sat_enu
+    )
+
+    return (
+        np.degrees(azimuth),
+        np.degrees(elevation),
+    )

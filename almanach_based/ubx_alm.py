@@ -152,6 +152,22 @@ def pos_kepler(a, tk):
     y = xp * math.sin(Om) + yp * ci * math.cos(Om)
     z = yp * si
     clk = a["af0"] + a["af1"] * tk
+    print(a)
+    print(
+        "tk = ", tk,
+        "a = ", A,
+        "n = ", n,
+        "E = ", E,
+        "nu = ", nu,
+        "u = ", u,
+        "r = ", r,
+        Om,
+        xp,
+        yp,
+        x,
+        y,
+        z,
+    )
     return x, y, z, clk
 
 
@@ -308,6 +324,7 @@ def main():
                 cw, tow, mod = int(bs // 604800) - BDS_WEEK_OFFSET, bs % 604800, 256
             wa = full_week(cw, a["wna"], mod)
             tk = (cw - wa) * 604800 + (tow - a["toa"])
+            print("toa = ", a["toa"])
             x, y, z, clk = pos_kepler(a, tk)
             age, week = tk, wa
         r = math.sqrt(x * x + y * y + z * z)

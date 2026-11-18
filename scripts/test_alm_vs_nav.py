@@ -1,7 +1,7 @@
 import logging
 
 from datetime import datetime, timezone
-
+import numpy as np
 from pathlib import Path
 
 from src.almanac.loader import (
@@ -14,7 +14,7 @@ from src.almanac.orbit_calculator import (
 from src.utils.logging_utils import setup_logging
 from src.navigation.loader import load_ephemerides
 from src.navigation.orbit_calculator import OrbitCalculator
-
+from src.utils.visibility import compute_az_el
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,20 @@ def main():
         tzinfo=timezone.utc,
     )
 
+    RECEIVER_LAT_DEG = 47.0
+    RECEIVER_LON_DEG = 19.0
+    RECEIVER_H = 120.0
+
+    receiver_llh = np.array([
+        np.radians(RECEIVER_LAT_DEG),
+        np.radians(RECEIVER_LON_DEG),
+        RECEIVER_H,
+    ])
+
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+    calc_alm = AlmanacOrbitCalculator()
+    calc_nav = OrbitCalculator()
 
     # Load almanac
 
@@ -59,17 +72,20 @@ def main():
         len(db),
     )
 
-    import math
+    logger.info(
+        "%-4s %10s %10s %10s %10s %10s",
+        "SAT",
+        "DR[km]",
+        "AZ_ALM",
+        "EL_ALM",
+        "AZ_NAV",
+        "EL_NAV",
+    )
 
-    calc_alm = AlmanacOrbitCalculator()
-    calc_nav = OrbitCalculator()
-
-    print()
-    print(f"{'SAT':<4} {'DR [m]':>12}")
-    print("-" * 20)
+    logger.info("-" * 70)
 
     for sat_id in alm_db.satellite_ids():
-        if not sat_id.startswith("C"):
+        if sat_id[0] not in {"G", "E", "C", "R"}:
             continue
 
         alm = alm_db.get(sat_id)
@@ -89,7 +105,7 @@ def main():
         if eph is None:
             continue
 
-        x_alm, y_alm, z_alm = calc_alm.compute_position(
+        alm_pos = calc_alm.compute_position(
             alm,
             EPOCH,
         )
@@ -99,32 +115,29 @@ def main():
             EPOCH,
         )
 
-        dr = math.sqrt(
-            (x_alm - nav_pos.x) ** 2 +
-            (y_alm - nav_pos.y) ** 2 +
-            (z_alm - nav_pos.z) ** 2
+        alm_az, alm_el = compute_az_el(
+            alm_pos.ecef,
+            receiver_llh,
         )
 
-        print(
-            f"{sat_id:<4} {dr:12.1f}"
-        )
-    """
-    for sat_id in ["E02", "E08"]:
-        alm = alm_db.get(sat_id)
-
-        print()
-        print("=" * 80)
-        print(sat_id)
-        print(alm)
-
-        eph = db.get_closest(
-            "E",
-            int(sat_id[1:]),
-            EPOCH,
+        nav_az, nav_el = compute_az_el(
+            nav_pos.ecef,
+            receiver_llh,
         )
 
-        print(eph)
-    """
+        dr = np.linalg.norm(
+            alm_pos.ecef - nav_pos.ecef
+        )
+
+        logger.info(
+            "%-4s %10.1f %10.1f %10.1f %10.1f %10.1f",
+            sat_id,
+            dr / 1000.0,
+            alm_az,
+            alm_el,
+            nav_az,
+            nav_el,
+        )
 
 if __name__ == "__main__":
     main()
