@@ -7,7 +7,8 @@ from src.almanac.loader import (
 def main():
     PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-    filename = PROJECT_ROOT / "data" / "almanac" / "alm.ubx"
+    filename = PROJECT_ROOT / "data" / "almanac" / "assistnow_almanac_20261120.ubx"
+
     db = load_almanac(filename)
 
     print(

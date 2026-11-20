@@ -5,7 +5,8 @@ description = "GNSS monitoring network planning and satellite visibility analysi
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
-    {name = "Bence Takács"}
+    {name = "Bence Takács"},
+    { name = "Márton Farkas"},
 ]
 
 dependencies = [
@@ -16,6 +17,9 @@ dependencies = [
     "pyyaml",
     "geopandas",
     "shapely",
+    "requests",
+    "python-dotenv",
+    "pyserial",
 ]
 
 [build-system]
