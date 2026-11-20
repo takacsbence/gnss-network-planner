@@ -33,17 +33,20 @@ class EphemerisDatabase:
         self.klobuchar_alpha = None
         self.klobuchar_beta = None
 
-    def add(self, eph: BroadcastEphemeris):
+    def add(
+            self,
+            eph: BroadcastEphemeris,
+    ):
         """
         Add a single ephemeris record to the database.
         """
 
-        key = (
-            eph.constellation,
-            eph.prn,
-        )
+        key = eph.sat_id
 
-        self._satellites[key].append(eph)
+        self._satellites.setdefault(
+            key,
+            [],
+        ).append(eph)
 
     def sort(self):
         """
@@ -82,45 +85,41 @@ class EphemerisDatabase:
         return self._satellites.keys()
 
     def get_all(
-        self,
-        constellation,
-        prn,
+            self,
+            sat_id: str,
     ):
         """
         Return all ephemerides for a satellite.
 
         Parameters
         ----------
-        constellation : str
-            GNSS constellation identifier
-            ('G', 'R', 'E', 'C', ...)
+        sat_id : str
+            Satellite identifier (e.g. G01, E11, C19, R05).
 
-        prn : int
-            Satellite PRN number.
+        Returns
+        -------
+        list[Ephemeris]
+            All ephemerides available for the satellite.
         """
 
         return self._satellites.get(
-            (constellation, prn),
-            []
+            sat_id,
+            [],
         )
 
     def get_closest(
             self,
-            constellation,
-            prn,
+            sat_id: str,
             epoch,
     ):
         """
-        Return the ephemeris whose reference epoch is
-        closest to the requested epoch.
+        Return the ephemeris whose reference epoch is closest to the
+        requested epoch.
 
         Parameters
         ----------
-        constellation : str
-            GNSS constellation identifier.
-
-        prn : int
-            Satellite PRN number.
+        sat_id : str
+            Satellite identifier (e.g. G01, E11, C19, R05).
 
         epoch : datetime
             Epoch of interest.
@@ -136,10 +135,7 @@ class EphemerisDatabase:
             in the database.
         """
 
-        records = self.get_all(
-            constellation,
-            prn,
-        )
+        records = self.get_all(sat_id)
 
         if not records:
             return None

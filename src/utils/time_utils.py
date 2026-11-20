@@ -1,6 +1,14 @@
 from datetime import datetime, timedelta, timezone
 
-# GPS time reference epoch (1980-01-06 00:00:00 UTC).
+"""
+GPS epoch represented as a timezone-aware datetime.
+
+IMPORTANT:
+The datetime value is interpreted on the GPS timescale.
+The UTC timezone is used only to keep datetime objects aware.
+No leap-second correction is applied anywhere in the project.
+"""
+
 GPS_EPOCH = datetime(
     1980,
     1,
@@ -8,13 +16,20 @@ GPS_EPOCH = datetime(
     tzinfo=timezone.utc,
 )
 
+SECONDS_PER_WEEK = 604800
 
 def gps_time_to_datetime(
     week: int,
     tow: float,
 ) -> datetime:
     """
-    Convert GPS week and time-of-week to UTC datetime.
+    Convert GPS week and time-of-week to a GPS datetime.
+
+    Notes
+    -----
+    The returned datetime is timezone-aware and uses UTC tzinfo.
+    However, the datetime value itself is interpreted on the GPS timescale.
+    No GPS-UTC conversion is performed.
 
     Parameters
     ----------
@@ -26,39 +41,36 @@ def gps_time_to_datetime(
     Returns
     -------
     datetime
-        Corresponding UTC datetime.
+        GPS datetime.
     """
     return GPS_EPOCH + timedelta(
         weeks=week,
         seconds=tow,
     )
 
-
-# GPS-UTC offset valid since 2017.
-# May be overridden by MGA-INI-TIME-UTC information if available.
-LEAP_GPS_UTC = 18
-
-# Difference between GPST and BeiDou Time (BDT) in seconds.
-BDT_GPST = 14
+# BDT lags GPST by 14 seconds.
+BDT_GPST_OFFSET = 14
 
 # Week numbering offsets relative to GPS week numbers.
 BDS_WEEK_OFFSET = 1356
 GST_WEEK_OFFSET = 1024
 
-
 def datetime_to_gps_time(
-    t_utc: datetime,
-    leap: int,
+    t_gps: datetime,
 ) -> tuple[int, float]:
     """
-    Convert UTC datetime to GPS week and time-of-week.
+    Convert a GPS datetime to GPS week and time-of-week.
+
+    Notes
+    -----
+    The returned datetime is timezone-aware and uses UTC tzinfo.
+    However, the datetime value itself is interpreted on the GPS timescale.
+    No GPS-UTC conversion is performed.
 
     Parameters
     ----------
-    t_utc : datetime
-        UTC epoch.
-    leap : int
-        GPS-UTC offset in seconds.
+    t_gps : datetime
+        GPS datetime.
 
     Returns
     -------
@@ -66,15 +78,12 @@ def datetime_to_gps_time(
         GPS week and GPS time-of-week [s].
     """
 
-    s = (
-        t_utc - GPS_EPOCH
-    ).total_seconds() + leap
+    s = (t_gps - GPS_EPOCH).total_seconds()
 
-    week = int(s // 604800)
-    tow = s - week * 604800
+    week = int(s // SECONDS_PER_WEEK)
+    tow = s - week * SECONDS_PER_WEEK
 
     return week, tow
-
 
 def resolve_full_week(
     current_week: int,
@@ -102,6 +111,7 @@ def resolve_full_week(
         Reconstructed full week number.
     """
 
+    # Candidate week having the same truncated representation.
     full_week = (
         current_week
         - ((current_week - truncated_week) % modulus)

@@ -210,6 +210,29 @@ class BroadcastEphemeris:
         """
         return self.sv_id
 
+    @property
+    def sat_id(self) -> str:
+        """
+        Return the canonical satellite identifier.
+
+        The identifier is formed by concatenating the GNSS
+        constellation code and the zero-padded PRN number.
+
+        Examples
+        --------
+        G01 : GPS PRN 1
+        E11 : Galileo PRN 11
+        C19 : BeiDou PRN 19
+        R05 : GLONASS slot 5
+
+        Returns
+        -------
+        str
+            Satellite identifier.
+        """
+
+        return f"{self.constellation}{self.prn:02d}"
+
 @dataclass
 class RinexNavigationFile:
     """

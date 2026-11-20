@@ -1,10 +1,27 @@
-from datetime import datetime, timezone
+import math
+
+from datetime import datetime, timezone, timedelta
 
 from src.navigation.orbit_calculator import SatellitePosition
 from src.almanac.models import AlmanacRecord
-from src.utils.time_utils import *
-from src.utils.constants import *
+from src.utils.time_utils import (
+    datetime_to_gps_time,
+    resolve_full_week,
+    BDT_GPST_OFFSET,
+    BDS_WEEK_OFFSET,
+    GST_WEEK_OFFSET,
+    SECONDS_PER_WEEK,
+)
 
+from src.utils.constants import (
+    MU,
+    MU_GLO,
+    PI,
+    AE,
+    J2,
+    OMEGA_E,
+    OMEGA_E_GLO,
+)
 
 class AlmanacOrbitCalculator:
     """
@@ -35,7 +52,7 @@ class AlmanacOrbitCalculator:
         alm : AlmanacRecord
             Decoded almanac record.
         epoch : datetime
-            Target epoch in UTC.
+            Target epoch in GPS time.
 
         Returns
         -------
@@ -72,19 +89,23 @@ class AlmanacOrbitCalculator:
             Time difference tk [s].
         """
 
-        gw, gtow = datetime_to_gps_time(epoch, LEAP_GPS_UTC)
+        gw, gtow = datetime_to_gps_time(epoch)
 
         if alm.gnss_id == "G":
             cw, tow, mod = gw, gtow, 256
         elif alm.gnss_id == "E":
             cw, tow, mod = gw - GST_WEEK_OFFSET, gtow, 4
         elif alm.gnss_id == "C":
-            bs = gw * 604800 + gtow - BDT_GPST
-            cw, tow, mod = int(bs // 604800) - BDS_WEEK_OFFSET, bs % 604800, 256
+            bs = gw * SECONDS_PER_WEEK + gtow - BDT_GPST_OFFSET
+            cw, tow, mod = int(bs // SECONDS_PER_WEEK) - BDS_WEEK_OFFSET, bs % SECONDS_PER_WEEK, 256
+        else:
+            raise ValueError(
+                f"Unsupported GNSS: {alm.gnss_id}"
+            )
 
         wa = resolve_full_week(cw, alm.week, mod)
 
-        tk = (cw - wa) * 604800 + (tow - alm.toa)
+        tk = (cw - wa) * SECONDS_PER_WEEK + (tow - alm.toa)
 
         return tk
 
@@ -203,7 +224,7 @@ class AlmanacOrbitCalculator:
         epoch
     ):
         """
-        Determine the UTC epoch corresponding to the GLONASS almanac
+        Determine the GPS-time epoch corresponding to the GLONASS almanac
         day number N.
 
         The GLONASS almanac day belongs to a four-year cycle. The cycle

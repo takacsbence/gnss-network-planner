@@ -93,22 +93,18 @@ def main():
         if alm is None:
             continue
 
-        sat_system = sat_id[0]
-        sat_prn = int(sat_id[1:])
+        alm_pos = calc_alm.compute_position(
+            alm,
+            EPOCH,
+        )
 
         eph = db.get_closest(
-            sat_system,
-            sat_prn,
+            sat_id,
             EPOCH,
         )
 
         if eph is None:
             continue
-
-        alm_pos = calc_alm.compute_position(
-            alm,
-            EPOCH,
-        )
 
         nav_pos = calc_nav.compute_position(
             eph,
