@@ -20,7 +20,7 @@ NAV_FILE = (
     PROJECT_ROOT
     / "data"
     / "navigation"
-    / "BRDC00IGS_R_20262940000_01D_MN.rnx"
+    / "BRDC00IGS_R_20263230000_01D_MN.rnx"
 )
 
 OUTPUT_FILE = (
@@ -33,13 +33,13 @@ OUTPUT_FILE = (
 VALID_SYSTEMS = {"G", "E", "R", "C"}
 
 START_TIME = datetime(
-    2026, 10, 21,
+    2026, 11, 19,
     0, 0, 0,
     tzinfo=timezone.utc,
 )
 
 END_TIME = datetime(
-    2026, 10, 21,
+    2026, 11, 19,
     23, 59, 59,
     tzinfo=timezone.utc,
 )

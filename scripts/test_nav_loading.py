@@ -11,14 +11,14 @@ INPUT_FILE = (
     PROJECT_ROOT /
     "data" /
     "navigation" /
-    "BRDC00IGS_R_20252630000_01D_MN.rnx"
+    "BRDC00IGS_R_20263230000_01D_MN.rnx"
 )
 
 some_epoch = datetime(
-    2025,
-    9,
-    20,
+    2026,
     11,
+    19,
+    12,
     10,
     0,
     tzinfo=timezone.utc,

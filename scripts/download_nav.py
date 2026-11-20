@@ -18,7 +18,7 @@ def main():
 
     try:
         compressed_nav_file = download_brdc(
-            datetime(2026, 10, 21),
+            datetime(2026, 11, 19),
             PROJECT_ROOT / "data" / "navigation",
         )
 

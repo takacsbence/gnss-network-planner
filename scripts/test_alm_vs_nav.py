@@ -23,10 +23,10 @@ def main():
 
     EPOCH = datetime(
         2026,
-        10,
-        21,
+        11,
+        19,
         12,
-        0,
+        10,
         0,
         tzinfo=timezone.utc,
     )
@@ -48,7 +48,7 @@ def main():
 
     # Load almanac
 
-    filename = PROJECT_ROOT / "data" / "almanac" / "alm.ubx"
+    filename = PROJECT_ROOT / "data" / "almanac" / "assistnow_almanac_20261120.ubx"
     alm_db = load_almanac(filename)
 
     logger.info(
@@ -61,7 +61,7 @@ def main():
             PROJECT_ROOT
             / "data"
             / "navigation"
-            / "BRDC00IGS_R_20262940000_01D_MN.rnx"
+            / "BRDC00IGS_R_20263230000_01D_MN.rnx"
     )
     db = load_ephemerides(
         NAV_FILE

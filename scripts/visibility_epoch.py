@@ -19,15 +19,15 @@ NAV_FILE = (
     PROJECT_ROOT
     / "data"
     / "navigation"
-    / "BRDC00IGS_R_20262940000_01D_MN.rnx"
+    / "BRDC00IGS_R_20263230000_01D_MN.rnx"
 )
 
 EPOCH = datetime(
     2026,
-    10,
-    21,
+    11,
+    19,
     12,
-    0,
+    10,
     0,
     tzinfo=timezone.utc,
 )
