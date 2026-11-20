@@ -42,8 +42,7 @@ receiver_llh = np.array([
     RECEIVER_H,
 ])
 
-SAT_SYSTEM = "C"
-SAT_PRN = 22
+SAT_ID = "C22"
 
 def main():
     setup_logging()
@@ -59,23 +58,20 @@ def main():
     )
 
     eph = db.get_closest(
-        SAT_SYSTEM,
-        SAT_PRN,
+        SAT_ID,
         EPOCH,
     )
 
     if eph is None:
         logger.error(
-            "No ephemeris found for %s%02d",
-            SAT_SYSTEM,
-            SAT_PRN,
+            "No ephemeris found for %s",
+            SAT_ID,
         )
         return
 
     logger.info(
-        "Selected ephemeris: %s%02d (TOE=%s)",
-        SAT_SYSTEM,
-        SAT_PRN,
+        "Selected ephemeris: %s (TOE=%s)",
+        SAT_ID,
         eph.epoch
 
     )
@@ -88,9 +84,8 @@ def main():
     )
 
     logger.info(
-        "Satellite position (%s%02d) X = %15.3f m Y = %15.3f m Z = %15.3f m",
-        SAT_SYSTEM,
-        SAT_PRN,
+        "Satellite position (%s) X = %15.3f m Y = %15.3f m Z = %15.3f m",
+        SAT_ID,
         sat_position.x,
         sat_position.y,
         sat_position.z,

@@ -36,8 +36,7 @@ def main():
     print(f"Satellites: {len(satellites)}")
 
     eph = db.get_closest(
-        "G",
-        1,
+        "G01",
         some_epoch,
     )
 

@@ -91,18 +91,16 @@ def main():
             "C": 0,
         }
 
-        for system, sv in satellites:
+        for sat_id in satellites:
             eph = db.get_closest(
-                system,
-                sv,
+                sat_id,
                 epoch,
             )
 
             if eph is None:
                 logger.error(
-                    "No ephemeris found for %s%02d %s",
-                    system,
-                    sv,
+                    "No ephemeris found for %s %s",
+                    sat_id,
                     epoch,
                 )
 
@@ -122,7 +120,7 @@ def main():
                 )
 
                 if np.degrees(el) >= MASK_ANGLE_DEG:
-                    counts[system] += 1
+                    counts[sat_id[0]] += 1
 
         results.append({
             "epoch": epoch,
@@ -144,7 +142,6 @@ def main():
     df = pd.DataFrame(
         results
     )
-
     df.to_csv(
         OUTPUT_FILE,
         index=False,

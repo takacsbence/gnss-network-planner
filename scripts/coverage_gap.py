@@ -124,11 +124,10 @@ def main():
         epoch_gap_satellites = 0
         epoch_gap_points = 0
 
-        for system, sv in satellites:
+        for sat_id in satellites:
 
             eph = db.get_closest(
-                system,
-                sv,
+                sat_id,
                 epoch,
             )
 
@@ -202,7 +201,7 @@ def main():
             for idx in visible_indices:
                 gap_record = {
                     "epoch": epoch.isoformat(),
-                    "satellite": f"{system}{sv:02d}",
+                    "satellite": f"{sat_id}",
                     "lat_deg": round(
                         np.degrees(
                             grid_llh[idx, 0]
@@ -232,10 +231,9 @@ def main():
             if sat_gap_points:
 
                 logger.info(
-                    "%s%02d GAP "
+                    "%s GAP "
                     "(uncovered=%d)",
-                    system,
-                    sv,
+                    sat_id,
                     gap_points,
                 )
 
@@ -246,9 +244,8 @@ def main():
                 )
 
                 logger.info(
-                    "%s%02d station elevations: %s",
-                    system,
-                    sv,
+                    "%s station elevations: %s",
+                    sat_id,
                     elevation_text,
                 )
 
